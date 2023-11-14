@@ -270,7 +270,7 @@ Restartservice() {
 task_status=("未完成" "未完成" "未完成" "未完成" "未完成" "未完成")
 while true; do
     echo "*****************************按顺序执行********************************"
-    echo "*                         1.安装基础软件$({task_status[1]})      "
+    echo "*                         1.安装基础软件${task_status[1]}      "
     task_status[1]="(已完成)"
     echo "*                         2.申请SSL证书$({task_status[2]})       "
     task_status[2]="(已完成)"
