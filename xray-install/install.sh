@@ -268,46 +268,77 @@ Restartservice() {
     systemctl restart cloudreve
 }
 
+# 初始化完成状态变量
+completed_1=false
+completed_2=false
+completed_3=false
+completed_4=false
+completed_5=false
+completed_6=false
+
 while true; do
     echo "*****************************按顺序执行********************************"
-    echo "*                         1.安装基础软件              "
-    echo "*                         2.申请SSL证书             "
-    echo "*                         3.安装Xray               "
-    echo "*                         4.安装WARP               "
-    echo "*                         5.安装Cloudreve            "
-    echo "*                         6.安装BBR                      "
-    echo "*                         7.重启服务                        "
-    echo "*                         8.退出                           "
+    echo "*                         1.安装基础软件$(if $completed_1; then echo " (已完成)"; fi)"
+    echo "*                         2.申请SSL证书$(if $completed_2; then echo " (已完成)"; fi)"
+    echo "*                         3.安装Xray$(if $completed_3; then echo " (已完成)"; fi)"
+    echo "*                         4.安装WARP$(if $completed_4; then echo " (已完成)"; fi)"
+    echo "*                         5.安装Cloudreve$(if $completed_5; then echo " (已完成)"; fi)"
+    echo "*                         6.安装BBR$(if $completed_6; then echo " (已完成)"; fi)"
+    echo "*                         7.重启服务"
+    echo "*                         8.退出"
     echo "*********************************************************************"
     read -p "请选择:" option
     case ${option} in
     1)
-       installBasicsoftware
-       continue
+       if ! $completed_1; then
+          installBasicsoftware
+          completed_1=true
+       else
+          echo "任务已完成！"
+       fi
        ;;
     2)
-       Applyforsslcertificate
-       continue
+       if $completed_1 && ! $completed_2; then
+          Applyforsslcertificate
+          completed_2=true
+       else
+          echo "请按照顺序执行任务！"
+       fi
        ;;
     3)
-       installxray
-       continue
+       if $completed_2 && ! $completed_3; then
+          installxray
+          completed_3=true
+       else
+          echo "请按照顺序执行任务！"
+       fi
        ;;
     4)
-       installwarp
-       continue
+       if $completed_3 && ! $completed_4; then
+          installwarp
+          completed_4=true
+       else
+          echo "请按照顺序执行任务！"
+       fi
        ;;
     5)
-       installcloudre
-       continue
+       if $completed_4 && ! $completed_5; then
+          installcloudre
+          completed_5=true
+       else
+          echo "请按照顺序执行任务！"
+       fi
        ;;
     6)
-       installbbr
-       continue
+       if $completed_5 && ! $completed_6; then
+          installbbr
+          completed_6=true
+       else
+          echo "请按照顺序执行任务！"
+       fi
        ;;
     7)
        Restartservice
-       continue
        ;;
     8)
        exit 0
