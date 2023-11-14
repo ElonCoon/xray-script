@@ -267,18 +267,23 @@ Restartservice() {
     systemctl restart xray
     systemctl restart cloudreve
 }
-task_status=("未完成" "未完成" "未完成" "未完成" "未完成" "未完成" "未完成" "未完成")
+task_status=("未完成" "未完成" "未完成" "未完成" "未完成" "未完成")
 while true; do
     echo "*****************************按顺序执行********************************"
-    echo "*                         1.安装基础软件                               *"
-    echo "*                         2.申请SSL证书${task_status[1]}               *"
+    echo "*                         1.安装基础软件${task_status[1]}       "
     task_status[1]="(已完成)"
-    echo "*                         3.安装Xray                                 *"
-    echo "*                         4.安装WARP                                 *"
-    echo "*                         5.安装Cloudreve                            *"
-    echo "*                         6.安装BBR                                  *"
-    echo "*                         7.重启服务                                  *"
-    echo "*                         8.退出                                     *"
+    echo "*                         2.申请SSL证书${task_status[2]}       "
+    task_status[2]="(已完成)"
+    echo "*                         3.安装Xray${task_status[3]}         "
+    task_status[3]="(已完成)"
+    echo "*                         4.安装WARP${task_status[4]}         "
+    task_status[4]="(已完成)"
+    echo "*                         5.安装Cloudreve${task_status[5]}   "
+    task_status[5]="(已完成)"
+    echo "*                         6.安装BBR${task_status[6]}        "
+    task_status[6]="(已完成)"
+    echo "*                         7.重启服务                        "
+    echo "*                         8.退出                           "
     echo "*********************************************************************"
     read -p "请选择:" option
     case ${option} in
