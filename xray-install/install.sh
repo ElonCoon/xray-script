@@ -267,7 +267,7 @@ Restartservice() {
     systemctl restart xray
     systemctl restart cloudreve
 }
-task_status=("(未完成)" "(未完成)" "未完成" "未完成" "未完成" "未完成")
+task_status=("未完成" "未完成" "未完成" "未完成" "未完成" "未完成")
 while true; do
     echo "*****************************按顺序执行********************************"
     echo "*                         1.安装基础软件${task_status[1]}      "
