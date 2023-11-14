@@ -272,7 +272,7 @@ while true; do
     echo "*****************************按顺序执行********************************"
     echo "*                         1.安装基础软件$({task_status[1]})      "
     task_status[1]="(已完成)"
-    echo "*                         2.申请SSL证书${task_status[2]}       "
+    echo "*                         2.申请SSL证书$({task_status[2]})       "
     task_status[2]="(已完成)"
     echo "*                         3.安装Xray${task_status[3]}         "
     task_status[3]="(已完成)"
