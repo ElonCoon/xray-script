@@ -10,6 +10,8 @@ installBasicsoftware() {
 }
 
 # 申请SSL证书
+Applyforsslcertificateinstall=false
+
 Applyforsslcertificate() {
     mkdir /usr/local/etc/xray_cert
     read -p "输入您的域名：" domain
@@ -69,6 +71,7 @@ server {
 }
 }
 EOF
+Applyforsslcertificateinstall=true
 }
 
 # 安装Xray
@@ -270,9 +273,8 @@ Restartservice() {
 
 while true; do
     echo "*****************************按顺序执行********************************"
-    status_1=""
-    echo "*                         1.安装基础软件${status_1}                    *"
-    echo "*                         2.申请SSL证书                               *"
+    echo "*                         1.安装基础软件                               *"
+    echo "*                         2.申请SSL证书${Applyforsslcertificateinstall && '（已完成）' || ''}   *"
     echo "*                         3.安装Xray                                 *"
     echo "*                         4.安装WARP                                 *"
     echo "*                         5.安装Cloudreve                            *"
@@ -284,7 +286,6 @@ while true; do
     case ${option} in
     1)
        installBasicsoftware
-       status_1="(已完成)"
        continue
        ;;
     2)
