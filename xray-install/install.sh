@@ -75,8 +75,7 @@ EOF
 installxray() {
     bash -c "$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" @ install -u root
 
-    # 替换Xray配置中的UUID
-    read -p "请输入uuid：" uuid
+    uuid=$(xray uuid)
     cat > /usr/local/etc/xray/config.json <<EOF
 {
     "log": {
@@ -271,7 +270,8 @@ Restartservice() {
 
 while true; do
     echo "*****************************按顺序执行********************************"
-    echo "*                         1.安装基础软件                              *"
+    status_1=""
+    echo "*                         1.安装基础软件${status_1}                    *"
     echo "*                         2.申请SSL证书                               *"
     echo "*                         3.安装Xray                                 *"
     echo "*                         4.安装WARP                                 *"
@@ -284,6 +284,7 @@ while true; do
     case ${option} in
     1)
        installBasicsoftware
+       status_1="(已完成)"
        continue
        ;;
     2)
