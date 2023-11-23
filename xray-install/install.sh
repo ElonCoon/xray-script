@@ -1,82 +1,35 @@
 #!/bin/bash
-      
-# 安装基础软件
-installBasicsoftware() {
-    apt update -y
-    apt install -y sudo nginx socat curl gnupg
-    systemctl enable nginx
-    curl https://get.acme.sh | sh
-    .acme.sh/acme.sh --set-default-ca --server letsencrypt
-}
 
-# 申请SSL证书
-Applyforsslcertificate() {
-    mkdir /usr/local/etc/xray_cert
-    read -p "输入您的域名：" domain
-    .acme.sh/acme.sh --issue -d $domain -k ec-256 --webroot /var/www/html
-    .acme.sh/acme.sh --install-cert -d $domain --ecc \
-      --fullchain-file /usr/local/etc/xray_cert/xray.crt \
-      --key-file /usr/local/etc/xray_cert/xray.key --reloadcmd "systemctl force-reload nginx"
-    chmod +r /usr/local/etc/xray_cert/xray.key
-    .acme.sh/acme.sh --upgrade --auto-upgrade
+#更新系统
+sudo apt-get update -y
 
-    # 创建证书续订脚本
-    cat <<EOF > /usr/local/etc/xray_cert/xray-cert-renew.sh
- #!/bin/bash
+#安装依赖
+apt install -y nginx socat curl gnupg
+systemctl enable nginx
 
-.acme.sh/acme.sh --install-cert -d $domain --ecc --fullchain-file /usr/local/etc/xray_cert/xray.crt --key-file /usr/local/etc/xray_cert/xray.key
-echo "Xray证书已更新"
+#安装acme
+curl https://get.acme.sh | sh
+.acme.sh/acme.sh --set-default-ca --server letsencrypt
 
+#申请证书和安装证书
+mkdir /usr/local/etc/xray_cert
+read -p "输入您的域名：" domain
+.acme.sh/acme.sh --issue -d $domain -k ec-256 --webroot /var/www/html
+.acme.sh/acme.sh --install-cert -d $domain --ecc \
+    --fullchain-file /usr/local/etc/xray_cert/xray.crt \
+    --key-file /usr/local/etc/xray_cert/xray.key --reloadcmd "systemctl force-reload xray"
 chmod +r /usr/local/etc/xray_cert/xray.key
-echo "私钥读取权限已授予"
+acme.sh/acme.sh --upgrade --auto-upgrade
 
-systemctl restart xray
-echo "Xray已重启"
-EOF
+#安装xray
+bash -c "$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" @ install -u root
 
-    chmod +x /usr/local/etc/xray_cert/xray-cert-renew.sh
-    (crontab -l ; echo "0 1 1 * * bash /usr/local/etc/xray_cert/xray-cert-renew.sh") | crontab -
+# 删除config.json文件中的所有内容
+> /usr/local/etc/xray/config.json
 
-    # 配置Nginx
-    rm /etc/nginx/nginx.conf
-    cat > /etc/nginx/nginx.conf <<'EOF'
-user www-data;
-worker_processes auto;
-pid /run/nginx.pid;
-include /etc/nginx/modules-enabled/*.conf;
-
-events {
-	worker_connections 1024;
-	# multi_accept on;
-}
-http {
-server {
-    listen 127.0.0.1:8001 proxy_protocol;
-    listen 127.0.0.1:8002 http2 proxy_protocol;
-    server_name  $domain;
-    real_ip_header proxy_protocol;
-    location / {
-      proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-      proxy_set_header Host $http_host;
-      proxy_redirect off;
-      proxy_pass http://127.0.0.1:5212;
-    }
-}
-server {
-    listen  80;
-    server_name  $domain;
-    return 301 https://$server_name$request_uri;
-}
-}
-EOF
-}
-
-# 安装Xray
-installxray() {
-    bash -c "$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" @ install -u root
-
-    uuid=$(xray uuid)
-    cat > /usr/local/etc/xray/config.json <<EOF
+#配置config.json
+uuid=$(xray uuid)
+cat << EOF >> /usr/local/etc/xray/config.json
 {
     "log": {
         "loglevel": "warning"
@@ -95,7 +48,7 @@ installxray() {
             {
 	            "type": "field",
 	            "domain": [
-	            	  "geosite:openai",
+	            	"geosite:openai",
 		            "geosite:disney",
 		            "geosite:netflix"
 	            ],
@@ -179,172 +132,143 @@ installxray() {
     ]
 }
 EOF
-}
 
 # 安装WARP
-installwarp() {
-    curl https://pkg.cloudflareclient.com/pubkey.gpg | sudo gpg --yes --dearmor --output /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg
-    echo "deb [arch=amd64 signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] https://pkg.cloudflareclient.com/ $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/cloudflare-client.list
-    sudo apt-get update
-    sudo apt-get install cloudflare-warp -y
-    warp-cli register
-    read -p "请输入WarpKey：" warpkey
-    warp-cli set-license $warpkey
-    warp-cli set-mode proxy
-    warp-cli set-proxy-port 26262
-    warp-cli connect
-}
+curl https://pkg.cloudflareclient.com/pubkey.gpg | sudo gpg --yes --dearmor --output /usr/share/keyrings/cloudflare-warp-archive-keyring.gpg
+echo "deb [arch=amd64 signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] https://pkg.cloudflareclient.com/ $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/cloudflare-client.list
+sudo apt-get update
+sudo apt-get install cloudflare-warp -y
+warp-cli register
+read -p "请输入Warp+ Key：" warpkey
+warp-cli set-license $warpkey
+warp-cli set-mode proxy
+warp-cli set-proxy-port 26262
+warp-cli connect
 
 # 安装Cloudreve
-installcloudre() {
-    mkdir /usr/local/etc/cloudreve
-    wget https://github.com/cloudreve/Cloudreve/releases/download/3.8.3/cloudreve_3.8.3_linux_amd64.tar.gz
-    tar -zxvf cloudreve_3.8.3_linux_amd64.tar.gz -C /usr/local/etc/cloudreve/
-    chmod +x /usr/local/etc/cloudreve/cloudreve
-    flag=false
-    /usr/local/etc/cloudreve/cloudreve > /usr/local/etc/cloudreve/output.txt & cloudreve_pid=$!
-    sleep 5
-    if [ "$flag" = true ]; then
-    kill $cloudreve_pid
-    fi
+mkdir /usr/local/etc/cloudreve
+wget https://github.com/cloudreve/Cloudreve/releases/download/3.8.3/cloudreve_3.8.3_linux_amd64.tar.gz
+tar -zxvf cloudreve_3.8.3_linux_amd64.tar.gz -C /usr/local/etc/cloudreve/
+chmod +x /usr/local/etc/cloudreve/cloudreve
+flag=false
+/usr/local/etc/cloudreve/cloudreve > /usr/local/etc/cloudreve/output.txt & cloudreve_pid=$!
+sleep 5
+if [ "$flag" = true ]; then
+kill $cloudreve_pid
+fi
 
-    # 获取Cloudreve初始管理员账号、密码和端口号
-    admin_user=$(grep -oP 'Admin user name: \K\S+' /usr/local/etc/cloudreve/output.txt)
-    admin_pass=$(grep -oP 'Admin password: \K\S+' /usr/local/etc/cloudreve/output.txt)
-    admin_port=$(grep -oP 'Listening to \K\S+' /usr/local/etc/cloudreve/output.txt)
+# 获取Cloudreve初始管理员账号、密码和端口号
+admin_user=$(grep -oP 'Admin user name: \K\S+' /usr/local/etc/cloudreve/output.txt)
+admin_pass=$(grep -oP 'Admin password: \K\S+' /usr/local/etc/cloudreve/output.txt)
+admin_port=$(grep -oP 'Listening to \K\S+' /usr/local/etc/cloudreve/output.txt)
 
-    # 输出默认账号、密码和端口号
-    echo "***********************************************************************"
-    echo "*                 初始管理员账号：$admin_user"
-    echo "*                 初始管理员密码：$admin_pass"
-    echo "*                 初始端口号：$admin_port"
-    echo "***********************************************************************"
-    echo "请记下账号、密码、端口号后按回车键继续..."
-    read -p ""
+# 输出默认账号、密码和端口号
+echo "***********************************************************************"
+echo "*                 初始管理员账号：$admin_user"
+echo "*                 初始管理员密码：$admin_pass"
+echo "*                 初始端口号：$admin_port"
+echo "***********************************************************************"
+echo "请记下账号、密码、端口号后按回车键继续..."
+read -p ""
 
-    # 配置Cloudreve systemd服务
-    cat <<EOF > /usr/lib/systemd/system/cloudreve.service
-    [Unit]
-    Description=Cloudreve
-    Documentation=https://docs.cloudreve.org
-    After=network.target
-    After=mysqld.service
-    Wants=network.target
+# 配置Cloudreve systemd服务
+cat << EOF >> /usr/lib/systemd/system/cloudreve.service
+[Unit]
+Description=Cloudreve
+Documentation=https://docs.cloudreve.org
+After=network.target
+After=mysqld.service
+Wants=network.target
 
-    [Service]
-    WorkingDirectory=/usr/local/etc/cloudreve
-    ExecStart=/usr/local/etc/cloudreve/cloudreve
-    Restart=on-abnormal
-    RestartSec=5s
-    KillMode=mixed
+[Service]
+WorkingDirectory=/usr/local/etc/cloudreve
+ExecStart=/usr/local/etc/cloudreve/cloudreve
+Restart=on-abnormal
+RestartSec=5s
+KillMode=mixed
 
-    StandardOutput=null
-    StandardError=syslog
+StandardOutput=null
+StandardError=syslog
 
-    [Install]
-    WantedBy=multi-user.target
+[Install]
+WantedBy=multi-user.target
 EOF
 
-    systemctl daemon-reload
-    systemctl enable cloudreve
-    systemctl start cloudreve
-    #删除output.txt
-    rm /usr/local/etc/cloudreve/output.txt
-    #删除cloudreve tar包
-    rm cloudreve_3.8.3_linux_amd64.tar.gz
-}
+systemctl daemon-reload
+systemctl enable cloudreve
+systemctl start cloudreve
+    
+#删除output.txt
+rm /usr/local/etc/cloudreve/output.txt
+    
+#删除cloudreve tar包
+rm cloudreve_3.8.3_linux_amd64.tar.gz
 
 # 安装BBR
-installbbr() {
-    echo "net.core.default_qdisc=fq" >> /etc/sysctl.conf
-    echo "net.ipv4.tcp_congestion_control=bbr" >> /etc/sysctl.conf
-    sysctl -p
+echo "net.core.default_qdisc=fq" >> /etc/sysctl.conf
+echo "net.ipv4.tcp_congestion_control=bbr" >> /etc/sysctl.conf
+sysctl -p
+
+#配置nginx.conf
+# 删除nginx.conf文件中的所有内容
+> /etc/nginx/nginx.conf
+cat << EOF >> /etc/nginx/nginx.conf
+user www-data;
+worker_processes auto;
+pid /run/nginx.pid;
+include /etc/nginx/modules-enabled/*.conf;
+
+events {
+	worker_connections 1024;
+	# multi_accept on;
 }
+http {
+    map \$http_upgrade \$connection_upgrade {
+        default upgrade;
+        ''      close;
+    }
+    server {
+        listen 127.0.0.1:8001 proxy_protocol;
+        listen 127.0.0.1:8002 http2 proxy_protocol;
+        server_name  $domain;
+
+        ssl_protocols TLSv1.2 TLSv1.3;
+        ssl_ciphers EECDH+CHACHA20:EECDH+CHACHA20-draft:EECDH+AES128:RSA+AES128:EECDH+AES256:RSA+AES256:EECDH+3DES:RSA+3DES:!MD5;
+        ssl_prefer_server_ciphers on;
+        ssl_session_cache shared:SSL:10m;
+        ssl_session_timeout 10m;
+        add_header Strict-Transport-Security "max-age=31536000";
+        error_page 497  https://\$host\$request_uri;
+
+        location / {
+            proxy_set_header Host \$host;
+            proxy_set_header X-Real-IP \$remote_addr;
+            proxy_set_header X-Forwarded-For \$proxy_add_x_forwarded_for;
+            proxy_set_header REMOTE-HOST \$remote_addr;
+            proxy_set_header Upgrade \$http_upgrade;
+            proxy_set_header Connection \$connection_upgrade;
+            proxy_pass http://127.0.0.1:5212;
+
+            add_header X-Cache \$upstream_cache_status;
+
+            set \$static_filerDMgmXdG 0;
+            if ( \$uri ~* "\.(gif|png|jpg|css|js|woff|woff2)$" ) {
+                set \$static_filerDMgmXdG 1;
+                expires 1m;
+            }
+            if ( \$static_filerDMgmXdG = 0 ) {
+                add_header Cache-Control no-cache;
+            }
+        }
+    }
+    server {
+        listen  80;
+        return 301 https://\$http_host\$request_uri;
+    }
+}
+EOF
 
 #重启服务
-Restartservice() {
-    systemctl restart nginx
-    systemctl restart xray
-    systemctl restart cloudreve
-}
-
-# 初始化完成状态变量
-completed_1=false
-completed_2=false
-completed_3=false
-completed_4=false
-completed_5=false
-completed_6=false
-
-while true; do
-    echo "*****************************按顺序执行********************************"
-    echo "*                         1.安装基础软件$(if $completed_1; then echo " (已完成)"; fi)"
-    echo "*                         2.申请SSL证书$(if $completed_2; then echo " (已完成)"; fi)"
-    echo "*                         3.安装Xray$(if $completed_3; then echo " (已完成)"; fi)"
-    echo "*                         4.安装WARP$(if $completed_4; then echo " (已完成)"; fi)"
-    echo "*                         5.安装Cloudreve$(if $completed_5; then echo " (已完成)"; fi)"
-    echo "*                         6.安装BBR$(if $completed_6; then echo " (已完成)"; fi)"
-    echo "*                         7.重启服务"
-    echo "*                         8.退出"
-    echo "*********************************************************************"
-    read -p "请选择:" option
-    case ${option} in
-    1)
-       if ! $completed_1; then
-          installBasicsoftware
-          completed_1=true
-       else
-          echo "任务已完成！"
-       fi
-       ;;
-    2)
-       if $completed_1 && ! $completed_2; then
-          Applyforsslcertificate
-          completed_2=true
-       else
-          echo "请按照顺序执行任务！"
-       fi
-       ;;
-    3)
-       if $completed_2 && ! $completed_3; then
-          installxray
-          completed_3=true
-       else
-          echo "请按照顺序执行任务！"
-       fi
-       ;;
-    4)
-       if $completed_3 && ! $completed_4; then
-          installwarp
-          completed_4=true
-       else
-          echo "请按照顺序执行任务！"
-       fi
-       ;;
-    5)
-       if $completed_4 && ! $completed_5; then
-          installcloudre
-          completed_5=true
-       else
-          echo "请按照顺序执行任务！"
-       fi
-       ;;
-    6)
-       if $completed_5 && ! $completed_6; then
-          installbbr
-          completed_6=true
-       else
-          echo "请按照顺序执行任务！"
-       fi
-       ;;
-    7)
-       Restartservice
-       ;;
-    8)
-       exit 0
-       ;;
-     *)
-        echo "无效的选择，请重新输入！"
-        ;;
-    esac
-done
+systemctl restart nginx
+systemctl restart xray
+systemctl restart cloudreve
