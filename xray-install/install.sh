@@ -1,25 +1,11 @@
 #!/bin/bash
 
 #更新系统
-sudo apt-get update -y
+apt-get update -y
 
 #安装依赖
-apt install -y nginx socat curl gnupg
+apt install -y sudo nginx socat curl gnupg
 systemctl enable nginx
-
-#安装acme
-curl https://get.acme.sh | sh
-.acme.sh/acme.sh --set-default-ca --server letsencrypt
-
-#申请证书和安装证书
-mkdir /usr/local/etc/xray_cert
-read -p "输入您的域名：" domain
-.acme.sh/acme.sh --issue -d $domain -k ec-256 --webroot /var/www/html
-.acme.sh/acme.sh --install-cert -d $domain --ecc \
-    --fullchain-file /usr/local/etc/xray_cert/xray.crt \
-    --key-file /usr/local/etc/xray_cert/xray.key --reloadcmd "systemctl force-reload xray"
-chmod +r /usr/local/etc/xray_cert/xray.key
-acme.sh/acme.sh --upgrade --auto-upgrade
 
 #安装xray
 bash -c "$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release.sh)" @ install -u root
@@ -208,6 +194,20 @@ rm cloudreve_3.8.3_linux_amd64.tar.gz
 echo "net.core.default_qdisc=fq" >> /etc/sysctl.conf
 echo "net.ipv4.tcp_congestion_control=bbr" >> /etc/sysctl.conf
 sysctl -p
+
+#安装acme
+curl https://get.acme.sh | sh
+.acme.sh/acme.sh --set-default-ca --server letsencrypt
+
+#申请证书和安装证书
+mkdir /usr/local/etc/xray_cert
+read -p "输入您的域名：" domain
+.acme.sh/acme.sh --issue -d $domain -k ec-256 --webroot /var/www/html
+.acme.sh/acme.sh --install-cert -d $domain --ecc \
+    --fullchain-file /usr/local/etc/xray_cert/xray.crt \
+    --key-file /usr/local/etc/xray_cert/xray.key --reloadcmd "systemctl force-reload xray"
+chmod +r /usr/local/etc/xray_cert/xray.key
+acme.sh/acme.sh --upgrade --auto-upgrade
 
 #配置nginx.conf
 # 删除nginx.conf文件中的所有内容
