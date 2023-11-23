@@ -207,7 +207,7 @@ read -p "输入您的域名：" domain
     --fullchain-file /usr/local/etc/xray_cert/xray.crt \
     --key-file /usr/local/etc/xray_cert/xray.key --reloadcmd "systemctl force-reload xray"
 chmod +r /usr/local/etc/xray_cert/xray.key
-acme.sh/acme.sh --upgrade --auto-upgrade
+.acme.sh/acme.sh --upgrade --auto-upgrade
 
 #配置nginx.conf
 # 删除nginx.conf文件中的所有内容
