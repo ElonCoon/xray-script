@@ -298,7 +298,7 @@ systemctl restart nginx
 systemctl restart xray
 systemctl restart cloudreve
 
-encoded_uuid=$(echo -n "$uuid" | base64)
+encoded_uuid=$(echo -n "$uuid@$domain:443" | base64)
 echo "*************************************************************************************"
 echo "warp端口号：$warpport"
 echo "*************************************************************************************"
