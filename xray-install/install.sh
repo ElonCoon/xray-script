@@ -296,6 +296,8 @@ systemctl restart xray
 systemctl restart cloudreve
 
 echo "*************************************************************************************"
+echo "warp端口号：$warpport"
+echo "*************************************************************************************"
 echo "Shadowrocket链接：vless://echo -n "$uuid" | base64?obfs=none&tls=1&peer=$domain&xtls=2"
 echo "*************************************************************************************"
 echo "Passwall链接：vless://$uuid@$domain:443?headerType=none&type=tcp&encryption=none&fp=randomized&flow=xtls-rprx-vision&security=tls&sni=$domain#备注"
