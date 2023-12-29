@@ -15,6 +15,7 @@ bash -c "$(curl -L https://github.com/XTLS/Xray-install/raw/main/install-release
 
 #配置config.json
 uuid=$(xray uuid)
+read -p "请输入Warp端口号：" warpport
 cat << EOF >> /usr/local/etc/xray/config.json
 {
     "log": {
@@ -109,7 +110,7 @@ cat << EOF >> /usr/local/etc/xray/config.json
             "settings": {
             "servers": [{
             "address": "127.0.0.1",
-            "port": 26262
+            "port": $warpport
             }]
         },
             "tag": "warp"
@@ -124,12 +125,29 @@ curl https://pkg.cloudflareclient.com/pubkey.gpg | sudo gpg --yes --dearmor --ou
 echo "deb [arch=amd64 signed-by=/usr/share/keyrings/cloudflare-warp-archive-keyring.gpg] https://pkg.cloudflareclient.com/ $(lsb_release -cs) main" | sudo tee /etc/apt/sources.list.d/cloudflare-client.list
 sudo apt-get update
 sudo apt-get install cloudflare-warp -y
-warp-cli register
-read -p "请输入Warp+ Key：" warpkey
-warp-cli set-license $warpkey
-warp-cli set-mode proxy
-warp-cli set-proxy-port 26262
-warp-cli connect
+echo "请输入Warp登陆模式:"
+read -p "1: Warp+ Key, 2: Zero Trust: " choice
+
+case $choice in
+    1)
+        echo "您选择了 Warp+ Key"
+        warp-cli register
+        read -p "请输入Warp+ Key：" warpkey
+        warp-cli set-license $warpkey
+        warp-cli set-mode proxy
+        warp-cli set-proxy-port $warpport
+        warp-cli connect
+        ;;
+    2)
+        echo "您选择了 Zero Trust"
+        read -p "请输入您的团队名：" teamname
+        warp-cli teams-enroll $teamname
+        warp-cli account
+        ;;
+    *)
+        echo "无效的选择"
+        ;;
+esac
 
 # 安装Cloudreve
 mkdir /usr/local/etc/cloudreve
@@ -272,3 +290,9 @@ EOF
 systemctl restart nginx
 systemctl restart xray
 systemctl restart cloudreve
+
+echo "*************************************************************************************"
+echo "Shadowrocket链接：vless://echo -n "$uuid" | base64?obfs=none&tls=1&peer=$domain&xtls=2"
+echo "*************************************************************************************"
+echo "Passwall链接：vless://$uuid@$domain:443?headerType=none&type=tcp&encryption=none&fp=randomized&flow=xtls-rprx-vision&security=tls&sni=$domain#备注"
+echo "*************************************************************************************"
