@@ -36,8 +36,8 @@ cat << EOF >> /usr/local/etc/xray/config.json
 	            "type": "field",
 	            "domain": [
 	            	"geosite:openai",
-		            "geosite:disney",
-		            "geosite:netflix"
+		        "geosite:disney",
+		        "geosite:netflix"
 	            ],
 	            "outboundTag": "warp"
             }
@@ -144,6 +144,7 @@ case $choice in
         warp-cli teams-enroll $teamname
 	echo "***********************************************************************"
 	echo "复制 “A browser window should open at the following URL:” 下面的链接在浏览器中打开"
+        echo "***********************************************************************"
 	echo "在成功页面上，右键单击并选择“查看页面源”,复制URL字段：com.cloudflare.warp....."
         echo "***********************************************************************"
         read -p "请输入token：" token
@@ -298,7 +299,7 @@ systemctl restart nginx
 systemctl restart xray
 systemctl restart cloudreve
 
-encoded_uuid=$(echo -n "$uuid@$domain:443" | base64)
+encoded_uuid=$(echo -n "auto:$uuid@$domain:443" | base64)
 echo "*************************************************************************************"
 echo "warp端口号：$warpport"
 echo "*************************************************************************************"
