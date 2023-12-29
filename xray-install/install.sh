@@ -140,6 +140,8 @@ case $choice in
         ;;
     2)
         echo "您选择了 Zero Trust"
+	read -p "请输入您的团队名：" teamname
+        warp-cli teams-enroll $teamname
 	echo "在成功页面上，右键单击并选择“查看页面源”,复制URL字段：com.cloudflare.warp....."
         read -p "请输入token：" token
         warp-cli teams-enroll-token $token
