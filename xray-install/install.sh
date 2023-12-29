@@ -142,7 +142,10 @@ case $choice in
         echo "您选择了 Zero Trust"
 	read -p "请输入您的团队名：" teamname
         warp-cli teams-enroll $teamname
+	echo "***********************************************************************"
+	echo "复制 “A browser window should open at the following URL:” 下面的链接在浏览器中打开"
 	echo "在成功页面上，右键单击并选择“查看页面源”,复制URL字段：com.cloudflare.warp....."
+        echo "***********************************************************************"
         read -p "请输入token：" token
         warp-cli teams-enroll-token $token
         warp-cli connect
@@ -295,10 +298,11 @@ systemctl restart nginx
 systemctl restart xray
 systemctl restart cloudreve
 
+encoded_uuid=$(echo -n "$uuid" | base64)
 echo "*************************************************************************************"
 echo "warp端口号：$warpport"
 echo "*************************************************************************************"
-echo "Shadowrocket链接：vless://echo -n "$uuid" | base64?obfs=none&tls=1&peer=$domain&xtls=2"
+echo "Shadowrocket链接：vless://$encoded_uuid?obfs=none&tls=1&peer=$domain&xtls=2"
 echo "*************************************************************************************"
 echo "Passwall链接：vless://$uuid@$domain:443?headerType=none&type=tcp&encryption=none&fp=randomized&flow=xtls-rprx-vision&security=tls&sni=$domain#备注"
 echo "*************************************************************************************"
