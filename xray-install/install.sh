@@ -302,6 +302,7 @@ systemctl restart cloudreve
 encoded_uuid=$(echo -n "auto:$uuid@$domain:443" | base64)
 echo "*************************************************************************************"
 echo "warp端口号：$warpport"
+echo "Zero Trust代理及端口号修改步骤：Zero Trust - Settings - WARP Client - Device settings(点击Default后面三个点，选择Configure) - Service mode(代理选择Proxy mode 端口号修改Port: Edit)"
 echo "*************************************************************************************"
 echo "Shadowrocket链接：vless://$encoded_uuid?obfs=none&tls=1&peer=$domain&xtls=2"
 echo "*************************************************************************************"
