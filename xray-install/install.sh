@@ -142,7 +142,8 @@ case $choice in
         echo "您选择了 Zero Trust"
         read -p "请输入您的团队名：" teamname
         warp-cli teams-enroll $teamname
-        warp-cli account
+        warp-cli connect
+	warp-cli account
         ;;
     *)
         echo "无效的选择"
